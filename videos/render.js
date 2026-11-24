@@ -1,11 +1,13 @@
 // Render scene.html frame-by-frame into an Instagram-ready MP4 (1080x1920, 30fps).
-// Usage: node render.js            -> writes bunny-family.mp4 (needs music.wav, see README)
+// Usage: node videos/render.js <folder>   -> <folder>/<folder-name>.mp4
+// The folder needs scene.html (defines window.setTime + window.DURATION) and music.wav.
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const path = require('path');
 
 const FPS = 30;
-const here = __dirname;
+const here = path.resolve(process.argv[2] || '.');
+const outName = path.basename(here) + '.mp4';
 
 (async () => {
   const browser = await chromium.launch();
@@ -22,7 +24,7 @@ const here = __dirname;
     '-i', path.join(here, 'music.wav'),
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium',
     '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart',
-    path.join(here, 'bunny-family.mp4'),
+    path.join(here, outName),
   ], { stdio: ['pipe', 'inherit', 'inherit'] });
 
   for (let i = 0; i < frames; i++) {
@@ -34,5 +36,5 @@ const here = __dirname;
   ff.stdin.end();
   await new Promise(r => ff.on('close', r));
   await browser.close();
-  console.log('done -> bunny-family.mp4');
+  console.log('done -> ' + path.join(here, outName));
 })();
