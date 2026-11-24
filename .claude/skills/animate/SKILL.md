@@ -17,10 +17,12 @@ follow its style sheet below** rather than inventing a new look.
    helpers (`ease`, `outBack`, `limb`/`poly`, `blinkAmt`, `hop`, `unfold`, grain + vignette filters).
 3. **Shot list** in a comment at the top of `scene.html`: time ranges → what moves. Plan one
    "moment" (a pop, a reveal, a hero entrance) around the middle and the title at ~70% of the length.
-4. **Draw** in `scene(t)`. It must be deterministic: a pure function of `t`, seeded randomness only.
+4. **Animate with the `motion-designer` skill**: copy its `scripts/motion.js` into the video folder
+   and use its helpers (anticipation, squash & stretch, follow-through, arcs, easing per move).
+   **Draw** in `scene(t)`. It must be deterministic: a pure function of `t`, seeded randomness only.
    Set `window.DURATION`. Keep the camera/world edges covered (extend backgrounds past the frame).
 5. **Preview** 4–5 frames as PNG with Playwright and look at them before rendering; fix overlaps,
-   black edges, unreadable text.
+   black edges, unreadable text. Run `motion-designer`'s `references/review-checklist.md`.
 6. **Sound**: copy and adapt `music.py` — melody + effects placed at the exact times of the
    animation events. Optional voiceover: `npx hyperframes tts "text" -v af_heart -o voice.wav`
    (or the Kokoro venv), then mix it into `music.wav` with ffmpeg (`amix`, voice ~ +6 dB over music).

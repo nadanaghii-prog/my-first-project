@@ -12,6 +12,9 @@ videos look like the earlier ones. Existing videos live in `videos/<name>/`:
 - `videos/origami/` — "origami" style (folded paper)
 - `videos/render.js` — renders any `videos/<name>/scene.html` + `music.wav` to `videos/<name>/<name>.mp4`
 
+All motion follows Disney's 12 principles via the `motion-designer` skill
+(`.claude/skills/motion-designer/`, helpers in `scripts/motion.js`); review every video with its checklist.
+
 HyperFrames (`npm install` brings it back) and its skills (`.claude/skills/hyperframes*`, `media-use`)
 are available for timeline/GSAP-based compositions, captions and voiceover.
 

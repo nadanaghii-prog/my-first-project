@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<title>Motion Demo</title>
+<style>
+  @font-face { font-family: "Lalezar"; src: url("../bunny-family/fonts/lalezar-arabic-400-normal.woff2") format("woff2"); }
+  html, body { margin: 0; padding: 0; background: #000; }
+  #stage { width: 1080px; height: 1920px; display: block; }
+</style>
+</head>
+<body>
+<svg id="stage" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920"></svg>
+<script src="motion.js"></script>
+<script>
+/* Motion demo — Disney's principles with the motion-designer helpers. Storybook style.
+ * Beat sheet:
+ *   0.25–3.1  ball drops and bounces (squash & stretch, slow in/out, arcs, timing); bunny watches (staging, secondary)
+ *   3.1–3.9   ball rolls to a stop with a wobble (follow through)
+ *   3.9–4.6   bunny crouches and hops (anticipation), lands with squash, ears follow through
+ *   5.9–6.9   exaggerated big jump (exaggeration)
+ *   7.5–10    title words pop in one after another (stagger + overshoot), hold to read
+ */
+const { clamp, progress, ease, tween, jump, followThrough, impact, stretchFromVelocity, squash, blink, breathe, lag, stagger, spring } = Motion;
+const W = 1080, H = 1920, DURATION = 10, GROUND = 1360;
+const INK = "#6b4a32", ink = (w = 4.5) => `stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+
+// ---------- ball: drop + decaying bounces (each bounce shorter: timing) ----------
+const DROP_T0 = 0.25, DROP_DUR = 0.5, X0 = 100, BX = 860;
+const BOUNCES = [[0.8, 380, 150], [0.6, 220, 120], [0.45, 120, 90], [0.32, 60, 60], [0.22, 24, 40]]; // [dur, height, dx]
+const IMPACTS = [DROP_T0 + DROP_DUR];
+BOUNCES.forEach(([d]) => IMPACTS.push(IMPACTS[IMPACTS.length - 1] + d));
+const R = 70;
+
+function ballState(t) {
+  if (t < DROP_T0) return null;
+  if (t < IMPACTS[0]) {                       // falling: slow in (accelerates) — ease in
+    const u = progress(t, DROP_T0, DROP_DUR);
+    const y = GROUND - R - 700 * (1 - u * u), v = 2 * 700 * u / DROP_DUR;
+    return { x: X0, y, v, rot: 0, impactAt: null };
+  }
+  let x = X0;
+  for (let i = 0; i < BOUNCES.length; i++) {
+    const [d, h, dx] = BOUNCES[i], t0 = IMPACTS[i];
+    if (t < t0 + d) {                          // parabolic arc: slow at the top, fast near the ground
+      const u = (t - t0) / d;
+      return { x: x + dx * u, y: GROUND - R - h * 4 * u * (1 - u), v: h * 4 * (1 - 2 * u) / d, rot: (x + dx * u - X0) * 0.9 };
+    }
+    x += dx;
+  }
+  // roll to a stop (slow out), then a tiny rocking follow-through
+  const tEnd = IMPACTS[IMPACTS.length - 1], u = ease.outCubic(progress(t, tEnd, 0.8));
+  const rx = x + 40 * u;
+  return { x: rx, y: GROUND - R, v: 0, rot: (rx - X0) * 0.9 + followThrough(t, tEnd + 0.8, 8, 2.2, 3.5) };
+}
+
+function ball(t) {
+  const s = ballState(t); if (!s) return "";
+  let [sx, sy] = stretchFromVelocity(s.v, 0.00045, 0.3);           // stretch along the fall
+  for (const ti of IMPACTS) { const [ix, iy] = impact(t, ti, 0.32, 0.16); if (ix !== 1) { sx = ix; sy = iy; } }
+  const bottom = s.y + R;                                           // squash pivots at the ground contact
+  const sh = clamp(1 - (GROUND - bottom) / 800);
+  return `
+    <ellipse cx="${s.x}" cy="${GROUND + 6}" rx="${70 * (0.35 + 0.65 * sh)}" ry="${12 * (0.35 + 0.65 * sh)}" fill="#3b2414" opacity="${0.18 * sh + 0.05}"/>
+    <g transform="translate(${s.x} ${bottom}) scale(${sx} ${sy}) translate(0 ${-R})">
+      <g transform="rotate(${s.rot})">
+        <circle r="${R}" fill="#e2483e" ${ink(5)}/>
+        <path d="M ${-R} 0 Q 0 ${-R * .5} ${R} 0" fill="none" stroke="#fdf3dc" stroke-width="14"/>
+        <path d="M ${-R} 0 Q 0 ${-R * .5} ${R} 0" fill="none" ${ink(3)}/>
+      </g>
+      <ellipse cx="-24" cy="-30" rx="16" ry="10" fill="#fff" opacity=".55"/>
+    </g>`;
+}
+
+// ---------- bunny ----------
+const HOPS = [{ t0: 3.9, height: 150, crouch: 0.14, crouchTime: 0.16, airTime: 0.5, land: 0.25 },
+              { t0: 5.9, height: 340, crouch: 0.22, crouchTime: 0.26, airTime: 0.75, land: 0.38 }];  // exaggerated
+const landAt = h => h.t0 + h.crouchTime + h.airTime;
+
+function bunny(t) {
+  let j = { y: 0, sx: 1, sy: 1, rot: 0 };
+  for (const h of HOPS) { const r = jump(t, h.t0, h); if (t >= h.t0 && t < landAt(h) + 0.6) j = r; }
+  const br = breathe(t, 0.45, 0.015);
+  // ears: overlap (lag behind the body while airborne) + follow-through after each landing
+  let earRot = 0;
+  for (const h of HOPS) {
+    const a = t - h.t0 - h.crouchTime;
+    if (a > 0 && a < h.airTime) earRot += (h.height / 150) * 16 * Math.sin(Math.PI * a / h.airTime) * (a / h.airTime < .5 ? 1 : -0.6);
+    earRot += followThrough(t, landAt(h), 10 + h.height / 15, 3, 4.2);
+  }
+  // eyes follow the ball while it moves (staging: the bunny points our attention), then look at us
+  const bs = ballState(t);
+  const look = bs && t < 3.9 ? clamp((bs.x - BX) / 300, -1, 1) * 7 : 0;
+  const lookY = bs && t < 3.9 ? clamp((bs.y - 1000) / 400, -1, 1) * 4 : 0;
+  const open = blink(t, 2.9, 0.8);
+  const happy = HOPS.some(h => t > h.t0 + h.crouchTime && t < landAt(h) + 0.15);
+  const sh = clamp(1 - j.y / 400);
+  const eye = x => happy
+    ? `<path d="M ${x - 16} -308 Q ${x} -326 ${x + 16} -308" fill="none" ${ink(5.5)}/>`
+    : `<ellipse cx="${x + look}" cy="${-310 + lookY}" rx="15" ry="${Math.max(1.5, 20 * open)}" fill="#3b2a20"/>` +
+      (open > .5 ? `<circle cx="${x + look + 5}" cy="${-317 + lookY}" r="5.5" fill="#fff"/>` : "");
+  const ear = (side, phase) => `<g transform="rotate(${side * 12 - earRot * (side > 0 ? 1 : 0.8) + Math.sin(t * 2.1 + phase) * 2} ${side * 34} -372)">
+      <ellipse cx="${side * 36}" cy="-470" rx="34" ry="104" fill="#c9a273" ${ink(5)}/>
+      <ellipse cx="${side * 36}" cy="-462" rx="16" ry="78" fill="#f2b0a6"/></g>`;
+  return `
+    <ellipse cx="${BX}" cy="${GROUND + 6}" rx="${130 * (0.4 + 0.6 * sh)}" ry="${20 * (0.4 + 0.6 * sh)}" fill="#3b2414" opacity="${0.2 * sh + 0.05}"/>
+    <g transform="translate(${BX} ${GROUND - j.y}) rotate(${j.rot}) scale(${j.sx} ${j.sy * br})">
+      <ellipse cx="-50" cy="-8" rx="48" ry="22" fill="#c9a273" ${ink(5)}/><ellipse cx="50" cy="-8" rx="48" ry="22" fill="#c9a273" ${ink(5)}/>
+      <path d="M -105 -40 Q -120 -200 0 -215 Q 120 -200 105 -40 Q 0 -10 -105 -40 Z" fill="#c9a273" ${ink(5)}/>
+      <ellipse cx="0" cy="-95" rx="62" ry="70" fill="#f6e7cf"/>
+      ${ear(-1, 0)}${ear(1, 1.3)}
+      <path d="M -112 -300 C -114 -372 -64 -398 0 -398 C 64 -398 114 -372 112 -300 C 110 -236 64 -206 0 -206 C -64 -206 -110 -236 -112 -300 Z" fill="#c9a273" ${ink(5)}/>
+      <ellipse cx="0" cy="-262" rx="60" ry="42" fill="#f6e7cf"/>
+      <ellipse cx="-70" cy="-270" rx="22" ry="12" fill="#f39a94" opacity=".75"/><ellipse cx="70" cy="-270" rx="22" ry="12" fill="#f39a94" opacity=".75"/>
+      ${eye(-40)}${eye(40)}
+      <path d="M -10 -282 Q 0 -276 10 -282 Q 8 -270 0 -267 Q -8 -270 -10 -282 Z" fill="#e8848a" ${ink(3)}/>
+      ${happy ? `<path d="M -22 -258 Q 0 -222 22 -258 Z" fill="#9a4a42" ${ink(4)}/>` : `<path d="M -22 -260 Q 0 -242 22 -260" fill="none" ${ink(4.5)}/>`}
+    </g>`;
+}
+
+// ---------- labels: which principle is on screen ----------
+const LABELS = [
+  [0.3, 2.1, "١ الضغط والمط  ·  ٦ البطء في البداية والنهاية"],
+  [2.1, 3.75, "٧ الأقواس  ·  ٩ التوقيت"],
+  [3.75, 4.75, "٢ التمهيد"],
+  [4.75, 5.8, "٥ الاستمرار والتداخل"],
+  [5.8, 7.35, "١٠ المبالغة"],
+];
+function label(t) {
+  for (const [a, b, txt] of LABELS) {
+    if (t >= a && t < b) {
+      const s = ease.outBack(progress(t, a, 0.35)) * (1 - ease.inCubic(progress(t, b - 0.2, 0.2)));
+      return `<g transform="translate(540 330) scale(${s})">
+        <rect x="-470" y="-62" width="940" height="110" rx="55" fill="#fdf3dc" ${ink(5)}/>
+        <text x="0" y="22" text-anchor="middle" font-family="Lalezar" font-size="58" fill="#d9603b">${txt}</text></g>`;
+    }
+  }
+  return "";
+}
+function title(t) {
+  if (t < 7.5) return "";
+  const words = ["١٢", "مبدأ", "من", "ديزني"];      // reading order (RTL): two lines, popped one after another
+  const pos = [[770, 330], [430, 330], [760, 500], [440, 500]];
+  const w = words.map((wd, i) => {
+    const s = ease.outBack(progress(t, 7.5 + stagger(i, 0.14), 0.4), 2.2);
+    return `<g transform="translate(${pos[i][0]} ${pos[i][1]}) scale(${s})"><text text-anchor="middle" y="40" font-family="Lalezar" font-size="${i === 0 ? 180 : 150}" fill="${i === 0 ? "#d9603b" : "#6b4a32"}" stroke="#fdf3dc" stroke-width="10" paint-order="stroke">${wd}</text></g>`;
+  }).join("");
+  const sub = ease.outCubic(progress(t, 8.3, 0.5));
+  return w + `<text x="540" y="${660 + (1 - sub) * 30}" opacity="${sub}" text-anchor="middle" font-family="Lalezar" font-size="56" fill="#6b4a32">حركة مرسومة بالكود على طريقة ديزني</text>`;
+}
+
+function scene(t) {
+  return `
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e4a8"/><stop offset="1" stop-color="#fbf0cf"/></linearGradient>
+    <radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#3b2414" stop-opacity="0"/><stop offset="1" stop-color="#3b2414" stop-opacity=".3"/></radialGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .32  0 0 0 0 .2  0 0 0 .55 0"/></filter>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  <path d="M 0 ${GROUND} Q 540 ${GROUND - 30} 1080 ${GROUND} L 1080 1920 L 0 1920 Z" fill="#9cc25a" ${ink(4)}/>
+  ${[120, 300, 760, 950].map((x, i) => `<path d="M ${x} ${GROUND + 120 + i * 40} q 4 -26 -2 -38 M ${x + 14} ${GROUND + 120 + i * 40} q 0 -30 4 -42" fill="none" stroke="#6f9a48" stroke-width="5" stroke-linecap="round"/>`).join("")}
+  ${bunny(t)}
+  ${ball(t)}
+  ${label(t)}
+  ${title(t)}
+  <rect width="${W}" height="${H}" fill="url(#vig)"/>
+  <rect width="${W}" height="${H}" filter="url(#grain)" opacity=".14"/>
+  <rect width="${W}" height="${H}" fill="#fdf3dc" opacity="${clamp(1 - t / 0.3)}"/>`;
+}
+
+window.IMPACTS = IMPACTS;
+const svg = document.getElementById("stage");
+window.DURATION = DURATION;
+window.setTime = (t) => { svg.innerHTML = scene(t); };
+setTime(Number(new URLSearchParams(location.search).get("t") || 4.2));
+</script>
+</body>
+</html>
