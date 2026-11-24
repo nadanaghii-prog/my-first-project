@@ -28,6 +28,12 @@ are available for timeline/GSAP-based compositions, captions and voiceover.
 - **Voice:** Kokoro (`hyperframes tts`, or the venv at `/opt/kokoro-venv`, set `HYPERFRAMES_PYTHON=/opt/kokoro-venv/bin/python`) supports English,
   Spanish, French, Hindi, Italian, Japanese, Portuguese, Chinese — **not Arabic**. Say so before
   promising an Arabic voiceover.
-- On-screen Arabic text uses the Lalezar font in `videos/bunny-family/fonts/`.
+- **Fonts** (owner's choice — use only these, from `fonts/`, all with Arabic + English):
+  - **Marhey** — titles in the storybook style (700 for titles, 600 for big words)
+  - **Lalezar** — titles in the origami style (400)
+  - **Almarai** — captions, subtitles, labels and any small text, in every style (800, or 700)
+  Plain scenes link `../../fonts/fonts.css`; HyperFrames projects copy the needed `fonts/*.woff2` into
+  `assets/fonts/` and declare `@font-face` with `assets/fonts/...` URLs. A new style must pick its title
+  font with the owner before use; captions stay Almarai. Never let text fall back to a system font.
 - Use reference images only as style inspiration; never trace or copy someone else's artwork.
 - Commit each finished video (scene, music script and the MP4); don't commit `music.wav`.

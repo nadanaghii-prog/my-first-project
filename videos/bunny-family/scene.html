@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>Bunny Family</title>
+<link rel="stylesheet" href="../../fonts/fonts.css">
 <style>
-  @font-face { font-family: "Lalezar"; src: url("fonts/lalezar-arabic-400-normal.woff2") format("woff2"); }
+  /* fonts: ../../fonts/fonts.css (Marhey titles, Almarai small text) */
   html, body { margin: 0; padding: 0; background: #000; }
   #stage { width: 1080px; height: 1920px; display: block; }
 </style>
@@ -316,8 +317,8 @@ function title(t) {
   const y = 200 - (1 - u) * 60;
   return `<g opacity="${u}" transform="translate(540 ${y}) rotate(${-2 + (1-u)*4}) scale(${0.85 + u*0.15})">
     <path d="M -400 -78 L 400 -88 L 386 0 L 404 84 L -396 74 L -382 -4 Z" fill="#fdf3dc" ${ink(6)}/>
-    <text x="0" y="36" text-anchor="middle" font-family="Lalezar" font-size="128" fill="#d9603b" stroke="${INK}" stroke-width="4" paint-order="stroke">عيلة الأرانب</text>
-    <text x="0" y="148" text-anchor="middle" font-family="Lalezar" font-size="54" fill="${INK}">مرسومة بالكود بالكامل</text>
+    <text x="0" y="36" text-anchor="middle" font-family="Marhey" font-weight="700" font-size="112" fill="#d9603b" stroke="${INK}" stroke-width="4" paint-order="stroke">عيلة الأرانب</text>
+    <text x="0" y="148" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="48" fill="${INK}">مرسومة بالكود بالكامل</text>
   </g>`;
 }
 

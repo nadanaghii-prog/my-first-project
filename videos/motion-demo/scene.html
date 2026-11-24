@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>Motion Demo</title>
+<link rel="stylesheet" href="../../fonts/fonts.css">
 <style>
-  @font-face { font-family: "Lalezar"; src: url("../bunny-family/fonts/lalezar-arabic-400-normal.woff2") format("woff2"); }
+  /* fonts: ../../fonts/fonts.css */
   html, body { margin: 0; padding: 0; background: #000; }
   #stage { width: 1080px; height: 1920px; display: block; }
 </style>
@@ -132,7 +133,7 @@ function label(t) {
       const s = ease.outBack(progress(t, a, 0.35)) * (1 - ease.inCubic(progress(t, b - 0.2, 0.2)));
       return `<g transform="translate(540 330) scale(${s})">
         <rect x="-470" y="-62" width="940" height="110" rx="55" fill="#fdf3dc" ${ink(5)}/>
-        <text x="0" y="22" text-anchor="middle" font-family="Lalezar" font-size="58" fill="#d9603b">${txt}</text></g>`;
+        <text x="0" y="22" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="48" fill="#d9603b">${txt}</text></g>`;
     }
   }
   return "";
@@ -143,10 +144,10 @@ function title(t) {
   const pos = [[770, 330], [430, 330], [760, 500], [440, 500]];
   const w = words.map((wd, i) => {
     const s = ease.outBack(progress(t, 7.5 + stagger(i, 0.14), 0.4), 2.2);
-    return `<g transform="translate(${pos[i][0]} ${pos[i][1]}) scale(${s})"><text text-anchor="middle" y="40" font-family="Lalezar" font-size="${i === 0 ? 180 : 150}" fill="${i === 0 ? "#d9603b" : "#6b4a32"}" stroke="#fdf3dc" stroke-width="10" paint-order="stroke">${wd}</text></g>`;
+    return `<g transform="translate(${pos[i][0]} ${pos[i][1]}) scale(${s})"><text text-anchor="middle" y="40" font-family="Marhey" font-weight="700" font-size="${i === 0 ? 170 : 132}" fill="${i === 0 ? "#d9603b" : "#6b4a32"}" stroke="#fdf3dc" stroke-width="10" paint-order="stroke">${wd}</text></g>`;
   }).join("");
   const sub = ease.outCubic(progress(t, 8.3, 0.5));
-  return w + `<text x="540" y="${660 + (1 - sub) * 30}" opacity="${sub}" text-anchor="middle" font-family="Lalezar" font-size="56" fill="#6b4a32">حركة مرسومة بالكود على طريقة ديزني</text>`;
+  return w + `<text x="540" y="${660 + (1 - sub) * 30}" opacity="${sub}" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="48" fill="#6b4a32">حركة مرسومة بالكود على طريقة ديزني</text>`;
 }
 
 function scene(t) {

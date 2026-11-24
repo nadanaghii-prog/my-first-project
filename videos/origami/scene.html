@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>Origami World</title>
+<link rel="stylesheet" href="../../fonts/fonts.css">
 <style>
-  @font-face { font-family: "Lalezar"; src: url("../bunny-family/fonts/lalezar-arabic-400-normal.woff2") format("woff2"); }
+  /* fonts: ../../fonts/fonts.css (Lalezar titles, Almarai small text) */
   html, body { margin: 0; padding: 0; background: #000; }
   #stage { width: 1080px; height: 1920px; display: block; }
 </style>
@@ -145,7 +146,7 @@ function title(t) {
     ${poly([[-430, -110], [430, -110], [430, 20], [-430, 20]], "#f08a5d")}
     ${poly([[-470, 20], [-430, -110], [-430, 150]], "#c95b3e")}${poly([[470, 20], [430, -110], [430, 150]], "#c95b3e")}
     <text x="0" y="22" text-anchor="middle" font-family="Lalezar" font-size="120" fill="#fbf6ec">عالم الأوريجامي</text>
-    <text x="0" y="112" text-anchor="middle" font-family="Lalezar" font-size="52" fill="#fbe3c8" opacity="${clamp((t - 7.7) / .5)}">ورق مطوي… مرسوم بالكود</text>
+    <text x="0" y="112" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="46" fill="#fbe3c8" opacity="${clamp((t - 7.7) / .5)}">ورق مطوي… مرسوم بالكود</text>
   </g>
   `;
 }

@@ -30,6 +30,10 @@ follow its style sheet below** rather than inventing a new look.
 8. **Check** sample frames from the MP4 and audio levels (`ffmpeg -af volumedetect`), send the MP4
    to the owner, commit and push.
 
+**Typography** — fonts live in `fonts/` (see CLAUDE.md): the style's title font below, and
+**Almarai** (800) for every caption, subtitle and label. Arabic text gets `direction: rtl`; keep
+captions ≥ 46px and titles ≥ 100px at 1080×1920; check one title frame and one caption frame.
+
 ## Style sheets
 
 ### Storybook (template: `videos/bunny-family/`)
@@ -43,6 +47,7 @@ follow its style sheet below** rather than inventing a new look.
 - **Camera:** slow ease from a close-up to the wide shot in the first ~4s.
 - **Finish:** paper grain (feTurbulence, ~16%) + warm vignette; fade in from cream.
 - **Sound:** music box melody in C major, soft chord pad, bird chirps, "boing" on hops, pop + sparkle chimes.
+- **Type:** titles **Marhey 700** in coral `#d9603b` on a cream paper card with the brown outline; captions Almarai 800 in brown `#6b4a32` on cream cards.
 
 ### Origami (template: `videos/origami/`)
 - **Look:** folded paper. No outlines. Every shape is flat facets: a lit side and a shaded side,
@@ -56,8 +61,9 @@ follow its style sheet below** rather than inventing a new look.
 - **Finish:** large faint fold lines across the frame + paper grain (~14%).
 - **Sound:** koto-like plucks (Karplus-Strong) on D minor pentatonic, low drone, paper rustle on every
   unfold, sea noise, wing whooshes.
+- **Type:** titles **Lalezar** in cream `#fbf6ec` on a folded coral paper banner; small text Almarai 800.
 
 ## Adding a new style
 
 Build a 10s test first, get the owner's approval, then add a style sheet here with the same
-headings (look, palette, characters, motion, finish, sound) and the template folder.
+headings (look, palette, characters, motion, finish, sound, type) and the template folder.
