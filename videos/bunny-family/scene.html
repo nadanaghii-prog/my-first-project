@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<title>Bunny Family</title>
+<style>
+  @font-face { font-family: "Lalezar"; src: url("fonts/lalezar-arabic-400-normal.woff2") format("woff2"); }
+  html, body { margin: 0; padding: 0; background: #000; }
+  #stage { width: 1080px; height: 1920px; display: block; }
+</style>
+</head>
+<body>
+<svg id="stage" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920"></svg>
+<script>
+// ------------------------------------------------------------
+// Bunny Family — every frame drawn in code (no video model).
+// scene(t) returns the full SVG for time t (seconds). Deterministic.
+// ------------------------------------------------------------
+const W = 1080, H = 1920, DURATION = 10;
+const INK = "#6b4a32";           // warm brown outline, storybook style
+const FUR = "#c9a273", FUR_L = "#f6e7cf", FUR_D = "#b48a5e";
+const PINK = "#f2b0a6", BLUSH = "#f39a94";
+
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = x => { x = clamp(x); return x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3) / 2; };
+const easeOutBack = x => { x = clamp(x); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); };
+const S = Math.sin, TAU = Math.PI * 2;
+// seeded random for stable layouts
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+// thick outlined stroke (limbs): outline pass + color pass
+const limb = (d, w, col) =>
+  `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${w+8}" stroke-linecap="round" stroke-linejoin="round"/>` +
+  `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+const ink = (w = 4) => `stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+
+// blink: closes briefly at given times
+function blinkAmt(t, offset) {
+  const period = 3.1, p = ((t + offset) % period + period) % period;
+  return p < 0.14 ? 1 - Math.sin(p / 0.14 * Math.PI) : 1;
+}
+// hop: little jumps for the kids
+function hop(t, starts) {
+  for (const s of starts) { const u = (t - s) / 0.55; if (u >= 0 && u <= 1) return Math.sin(u * Math.PI); }
+  return 0;
+}
+
+// ---------------- characters ----------------
+// local coords: feet at y=0, adult head center ~(0,-370)
+function face({ t, off, open = false, happy = false }) {
+  const b = blinkAmt(t, off);
+  const eye = (x) => happy
+    ? `<path d="M ${x-15} -382 Q ${x} -398 ${x+15} -382" fill="none" ${ink(5)}/>`
+    : `<ellipse cx="${x}" cy="-385" rx="15" ry="${Math.max(1.5, 20*b)}" fill="#3b2a20"/>` +
+      (b > .5 ? `<circle cx="${x+5}" cy="-392" r="5.5" fill="#fff"/><circle cx="${x-5}" cy="-378" r="2.5" fill="#fff" opacity=".8"/>` : "");
+  const mouth = open
+    ? `<path d="M -20 -334 Q 0 -300 20 -334 Z" fill="#9a4a42" ${ink(4)}/><path d="M -10 -318 Q 0 -308 10 -318" fill="#f08a86"/>`
+    : `<path d="M -22 -336 Q 0 -316 22 -336" fill="none" ${ink(4.5)}/>`;
+  return `
+    <ellipse cx="0" cy="-338" rx="58" ry="40" fill="${FUR_L}"/>
+    <ellipse cx="-66" cy="-346" rx="21" ry="12" fill="${BLUSH}" opacity=".75"/>
+    <ellipse cx="66" cy="-346" rx="21" ry="12" fill="${BLUSH}" opacity=".75"/>
+    ${eye(-38)}${eye(38)}
+    <path d="M -10 -356 Q 0 -350 10 -356 Q 8 -344 0 -341 Q -8 -344 -10 -356 Z" fill="#e8848a" ${ink(3)}/>
+    <path d="M 0 -341 L 0 -334" ${ink(3.5)}/>
+    ${mouth}`;
+}
+function ears(t, off, tint = PINK) {
+  const w = S(t * 2.2 + off) * 3 + (Math.max(0, S(t * 0.9 + off * 2)) ** 8) * 9;
+  const ear = (side) => {
+    const rot = side * (13 + w * (side > 0 ? 1 : 0.6));
+    return `<g transform="rotate(${rot} ${side*38} -440)">
+      <ellipse cx="${side*38}" cy="-540" rx="36" ry="112" fill="${FUR}" ${ink(5)}/>
+      <ellipse cx="${side*38}" cy="-530" rx="17" ry="84" fill="${tint}"/>
+    </g>`;
+  };
+  return ear(-1) + ear(1);
+}
+function head(t, off, opts = {}) {
+  return `${ears(t, off)}
+    <path d="M -108 -372 C -110 -440 -60 -466 0 -466 C 60 -466 110 -440 108 -372 C 106 -312 62 -282 0 -282 C -62 -282 -106 -312 -108 -372 Z" fill="${FUR}" ${ink(5)}/>
+    <path d="M -104 -350 l -14 8 l 12 4 M 104 -350 l 14 8 l -12 4" fill="none" ${ink(4)}/>
+    ${face({ t, off, ...opts })}`;
+}
+
+function dad(t) {
+  const br = S(t * 2.4) * 0.012;
+  return `<g transform="scale(1 ${1+br})">
+    ${limb("M -40 -40 L -40 -4", 50, "#4f78ad")}${limb("M 40 -40 L 40 -4", 50, "#4f78ad")}
+    <ellipse cx="-46" cy="-2" rx="46" ry="22" fill="${FUR}" ${ink(5)}/>
+    <ellipse cx="46" cy="-2" rx="46" ry="22" fill="${FUR}" ${ink(5)}/>
+    <!-- plaid shirt -->
+    <path d="M -100 -280 Q -112 -150 -96 -70 L 96 -70 Q 112 -150 100 -280 Q 0 -305 -100 -280 Z" fill="#9cc0e6" ${ink(5)}/>
+    <!-- overalls -->
+    <path d="M -86 -200 L 86 -200 L 96 -60 Q 0 -44 -96 -60 Z" fill="#5d86b8" ${ink(5)}/>
+    <path d="M -60 -200 L -78 -282 M 60 -200 L 78 -282" ${ink(18)} stroke="${INK}"/>
+    <path d="M -60 -200 L -78 -282 M 60 -200 L 78 -282" stroke="#5d86b8" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="-60" cy="-200" r="7" fill="#e7c25f" ${ink(3)}/><circle cx="60" cy="-200" r="7" fill="#e7c25f" ${ink(3)}/>
+    <rect x="-34" y="-180" width="68" height="52" rx="8" fill="#6f97c8" ${ink(4)}/>
+    <path d="M -96 -110 Q 0 -96 96 -110" fill="none" stroke="#3f6290" stroke-width="3" stroke-dasharray="8 7"/>
+    <!-- arms -->
+    ${limb("M -100 -260 Q -138 -190 -112 -140", 40, "#9cc0e6")}
+    <circle cx="-110" cy="-134" r="22" fill="${FUR}" ${ink(4)}/>
+    ${limb("M 100 -260 Q 132 -200 112 -150", 40, "#9cc0e6")}
+    <circle cx="110" cy="-144" r="22" fill="${FUR}" ${ink(4)}/>
+    <g transform="rotate(${S(t*1.3)*2} 0 -290)">
+      ${head(t, 0.4)}
+      <!-- straw hat -->
+      <path d="M -82 -440 Q -84 -520 0 -526 Q 84 -520 82 -440 Z" fill="#c08a52" ${ink(5)}/>
+      <path d="M -80 -456 Q 0 -470 80 -456 L 81 -440 Q 0 -452 -81 -440 Z" fill="#8f5f33"/>
+      <ellipse cx="0" cy="-436" rx="150" ry="30" fill="#c99459" ${ink(5)}/>
+    </g>
+  </g>`;
+}
+
+function mom(t) {
+  const br = S(t * 2.4 + 1) * 0.012;
+  // waving arm (from 1.6s, gentle)
+  const wave = clamp((t - 1.6) / 0.6) * S((t - 1.6) * 7) * 14;
+  return `<g transform="scale(1 ${1+br})">
+    <ellipse cx="-36" cy="-4" rx="40" ry="18" fill="#8c5a3c" ${ink(5)}/>
+    <ellipse cx="36" cy="-4" rx="40" ry="18" fill="#8c5a3c" ${ink(5)}/>
+    <path d="M -84 -282 Q 0 -302 84 -282 L 128 -24 Q 0 -6 -128 -24 Z" fill="#e79aa7" ${ink(5)}/>
+    ${[...Array(14)].map((_, i) => `<circle cx="${-100 + (i%5)*50 + (i%2)*10}" cy="${-230 + Math.floor(i/5)*70 + (i%3)*14}" r="3.5" fill="#fff" opacity=".7"/>`).join("")}
+    <!-- apron -->
+    <path d="M -66 -200 L 66 -200 L 92 -40 Q 0 -26 -92 -40 Z" fill="#fdf7ec" ${ink(4.5)}/>
+    <path d="M -54 -270 L -66 -200 M 54 -270 L 66 -200" ${ink(4)}/>
+    <path d="M -66 -200 Q 0 -192 66 -200" fill="none" stroke="#e79aa7" stroke-width="9"/>
+    <path d="M -90 -58 Q 0 -44 90 -58" fill="none" stroke="#d8c8b4" stroke-width="3" stroke-dasharray="8 7"/>
+    <!-- collar -->
+    <path d="M -46 -290 Q -26 -256 0 -284 Q 26 -256 46 -290 Z" fill="#fff" ${ink(4)}/>
+    <circle cx="0" cy="-246" r="5" fill="#fff" ${ink(2.5)}/><circle cx="0" cy="-226" r="5" fill="#fff" ${ink(2.5)}/>
+    <!-- arms -->
+    ${limb("M -84 -262 Q -116 -200 -86 -150", 38, "#e79aa7")}
+    <circle cx="-82" cy="-146" r="21" fill="${FUR}" ${ink(4)}/>
+    <g transform="rotate(${-wave - 8} 84 -262)">
+      ${limb("M 84 -262 Q 132 -300 140 -360", 38, "#e79aa7")}
+      <circle cx="142" cy="-372" r="22" fill="${FUR}" ${ink(4)}/>
+    </g>
+    <g transform="rotate(${S(t*1.2+2)*2.5} 0 -290)">
+      ${head(t, 1.7, { open: true })}
+    </g>
+  </g>`;
+}
+
+function kid(t, { off, girl, hops }) {
+  const h = hop(t, hops);
+  const squash = 1 - h * 0.05;
+  const shirt = girl ? "#f4b3bf" : "#fdfdfd";
+  const bottom = girl ? "#5a8fb3" : "#9b6a3e";
+  const happy = h > 0.15;
+  return `<g transform="translate(0 ${-h*90}) scale(${1/squash} ${squash})">
+    <ellipse cx="-34" cy="-4" rx="34" ry="16" fill="${girl ? "#e57b8f" : "#4f78ad"}" ${ink(5)}/>
+    <ellipse cx="34" cy="-4" rx="34" ry="16" fill="${girl ? "#e57b8f" : "#4f78ad"}" ${ink(5)}/>
+    ${limb("M -30 -60 L -32 -14", 28, "#fff")}${limb("M 30 -60 L 32 -14", 28, "#fff")}
+    <path d="M -74 -272 Q 0 -292 74 -272 Q 84 -180 78 -120 L -78 -120 Q -84 -180 -74 -272 Z" fill="${shirt}" ${ink(5)}/>
+    ${girl ? "" : [0,1,2,3,4].map(i => `<path d="M ${-79+ (i<1?3:0)} ${-250+i*28} L ${79-(i<1?3:0)} ${-250+i*28}" stroke="#5d86b8" stroke-width="11"/>`).join("")}
+    ${girl
+      ? `<path d="M -60 -210 L 60 -210 L 96 -54 Q 0 -40 -96 -54 Z" fill="${bottom}" ${ink(5)}/>
+         <rect x="-26" y="-180" width="52" height="40" rx="8" fill="#6aa0c4" ${ink(3.5)}/>`
+      : `<path d="M -78 -124 L 78 -124 L 84 -54 L 8 -54 L 0 -84 L -8 -54 L -84 -54 Z" fill="${bottom}" ${ink(5)}/>`}
+    ${limb("M -74 -256 Q -104 -200 -92 -150", 32, shirt)}
+    <circle cx="-92" cy="-142" r="19" fill="${FUR}" ${ink(4)}/>
+    ${limb("M 74 -256 Q 104 -200 92 -150", 32, shirt)}
+    <circle cx="92" cy="-142" r="19" fill="${FUR}" ${ink(4)}/>
+    <g transform="translate(0 40) rotate(${S(t*1.6+off)*3} 0 -330)">
+      ${head(t, off, { open: true, happy })}
+      ${girl ? `<path d="M 60 -452 q 18 -22 34 -4 q 16 18 -10 26 z M 60 -452 q -2 -30 -26 -24 q -20 10 4 30 z" fill="#f06f8c" ${ink(3.5)}/>` : ""}
+    </g>
+  </g>`;
+}
+
+// ---------------- environment ----------------
+function sky(t) {
+  const rays = [...Array(14)].map((_, i) => {
+    const a = i / 14 * TAU + t * 0.06;
+    return `<path d="M ${620 + Math.cos(a)*190} ${250 + Math.sin(a)*190} L ${620 + Math.cos(a+0.08)*720} ${250 + Math.sin(a+0.08)*720} L ${620 + Math.cos(a-0.08)*720} ${250 + Math.sin(a-0.08)*720} Z" fill="#fff8de" opacity=".28"/>`;
+  }).join("");
+  return `<rect x="-600" y="-900" width="${W+1200}" height="${H+900}" fill="#f7e4a8"/><rect x="-600" y="0" width="${W+1200}" height="${H}" fill="url(#skyG)"/>
+    ${rays}
+    <circle cx="620" cy="250" r="${300 + S(t*1.5)*8}" fill="url(#sunGlow)"/>
+    <circle cx="620" cy="250" r="140" fill="#fff6d6"/>
+    ${cloud(160 + t*9, 220, 1)}${cloud(930 - t*6, 380, .75)}`;
+}
+function cloud(x, y, s) {
+  return `<g transform="translate(${x} ${y}) scale(${s})" opacity=".9">
+    <path d="M -110 30 Q -120 -10 -78 -14 Q -64 -60 -16 -48 Q 20 -84 62 -44 Q 112 -50 112 0 Q 130 30 96 34 Z" fill="#fffaf0" ${ink(4)} stroke-opacity=".5"/>
+  </g>`;
+}
+function hills() {
+  const stripes = (cx, cy, rx, n, col) => [...Array(n)].map((_, i) =>
+    `<path d="M ${cx-rx} ${cy + i*24} Q ${cx} ${cy - 70 + i*24} ${cx+rx} ${cy + i*24}" fill="none" stroke="${col}" stroke-width="7" opacity=".55"/>`).join("");
+  return `
+    <path d="M -600 640 L 0 640 Q 200 520 420 600 Q 600 520 780 590 Q 940 520 1080 580 L 1680 580 L 1680 900 L -600 900 Z" fill="#b5cd7a" ${ink(4)}/>
+    <g clip-path="url(#hillClip)">${stripes(260, 640, 380, 8, "#cddf98")}${stripes(840, 640, 360, 8, "#cddf98")}</g>
+    ${[[230,560],[262,548],[300,566],[880,540],[915,552]].map(([x,y]) =>
+      `<path d="M ${x} ${y} L ${x-22} ${y+70} L ${x+22} ${y+70} Z" fill="#6f9a48" ${ink(3.5)}/>`).join("")}
+    <path d="M -600 760 L 0 760 Q 260 660 540 740 Q 820 680 1080 730 L 1680 730 L 1680 980 L -600 980 Z" fill="#9fc062" ${ink(4)}/>`;
+}
+function appleTree(x, y, t, flip) {
+  const sw = S(t * 1.1 + x) * 1.6;
+  seed = Math.floor(x) + 11;
+  const apples = [...Array(9)].map(() => {
+    const ax = (rnd() - .5) * 280, ay = -380 - rnd() * 230;
+    return `<circle cx="${ax}" cy="${ay}" r="17" fill="#e2483e" ${ink(3.5)}/><path d="M ${ax} ${ay-17} l 4 -10" ${ink(3)}/><circle cx="${ax-6}" cy="${ay-6}" r="4" fill="#fff" opacity=".6"/>`;
+  }).join("");
+  return `<g transform="translate(${x} ${y}) scale(${flip ? -1 : 1} 1)">
+    <path d="M -34 0 Q -26 -200 -40 -330 L 40 -330 Q 26 -200 34 0 Z" fill="#8a5a36" ${ink(5)}/>
+    <path d="M -8 -60 q 6 -40 -4 -90 M 14 -150 q -6 -40 4 -80" fill="none" ${ink(3)} opacity=".6"/>
+    <g transform="rotate(${sw} 0 -330)">
+      <path d="M -180 -380 Q -210 -470 -140 -520 Q -140 -620 -40 -630 Q 30 -690 110 -620 Q 200 -610 190 -510 Q 240 -440 170 -370 Q 100 -310 0 -340 Q -110 -300 -180 -380 Z" fill="#78a84a" ${ink(5)}/>
+      <path d="M -120 -440 q 30 -20 60 0 M 40 -520 q 30 -20 60 0 M -40 -580 q 25 -18 50 0" fill="none" stroke="#5f8c3a" stroke-width="5" stroke-linecap="round"/>
+      ${apples}
+    </g>
+  </g>`;
+}
+function cottage(t) {
+  const smoke = [0, 1, 2, 3].map(i => {
+    const u = ((t * 0.32 + i / 4) % 1);
+    return `<circle cx="${852 + u*40 + S(u*7)*10}" cy="${470 - u*230}" r="${14 + u*30}" fill="#fffaf0" opacity="${(1-u)*0.75}"/>`;
+  }).join("");
+  return `<g>
+    ${smoke}
+    <rect x="828" y="430" width="48" height="110" fill="#c0694a" ${ink(4)}/>
+    <rect x="820" y="424" width="64" height="20" fill="#a95a3e" ${ink(4)}/>
+    <path d="M 610 760 L 610 600 L 900 600 L 900 760 Z" fill="#f4e1bf" ${ink(5)}/>
+    <path d="M 610 640 L 900 640 M 690 600 L 690 760 M 830 600 L 830 760" ${ink(6)} stroke="#9a6b44"/>
+    <path d="M 560 620 Q 640 470 755 420 Q 870 470 950 620 Q 755 650 560 620 Z" fill="#e8c565" ${ink(5)}/>
+    ${[...Array(10)].map((_, i) => `<path d="M ${590 + i*34} ${612 - Math.abs(i-4.5)*0} Q ${620 + i*28} ${540} ${700 + i*12} ${470}" fill="none" stroke="#c9a347" stroke-width="3.5" opacity=".8"/>`).join("")}
+    <rect x="726" y="660" width="62" height="100" rx="6" fill="#a8703f" ${ink(4.5)}/>
+    <circle cx="776" cy="714" r="5" fill="#e7c25f"/>
+    ${[[640,660],[848,660]].map(([x,y]) => `<rect x="${x}" y="${y}" width="44" height="44" fill="#bfe0ee" ${ink(4)}/><path d="M ${x+22} ${y} L ${x+22} ${y+44} M ${x} ${y+22} L ${x+44} ${y+22}" ${ink(3)}/>`).join("")}
+    <rect x="732" y="520" width="44" height="44" fill="#bfe0ee" ${ink(4)}/><path d="M 754 520 L 754 564 M 732 542 L 776 542" ${ink(3)}/>
+    <path d="M 470 740 L 470 690 M 510 740 L 510 690 M 550 740 L 550 690 M 460 704 L 560 704 M 460 724 L 560 724" ${ink(10)} stroke="#a8703f"/>
+  </g>`;
+}
+function ground() {
+  seed = 99; const tufts = [...Array(26)].map(() => { const x = rnd()*1080, y = 1120 + rnd()*700; return `<path d="M ${x-10} ${y} q 2 -18 -2 -26 M ${x} ${y} q 0 -22 3 -32 M ${x+10} ${y} q -2 -16 4 -24" fill="none" stroke="#5f8c3a" stroke-width="4" stroke-linecap="round"/>`; }).join("");
+  return `<path d="M -600 820 Q 540 760 1680 820 L 1680 2700 L -600 2700 Z" fill="url(#grassG)" ${ink(4)}/>${tufts}
+    ${[[760,800],[740,840],[720,890],[700,950]].map(([x,y],i)=>`<ellipse cx="${x}" cy="${y}" rx="${26+i*4}" ry="${9+i*1.5}" fill="#d9cdb0" ${ink(3)}/>`).join("")}`;
+}
+function carrot(x, y, s, t, pop = 0) {
+  const sway = S(t * 2 + x * 0.05) * 6;
+  const lift = pop * 120;
+  return `<g transform="translate(${x} ${y - lift}) scale(${s})">
+    <g transform="rotate(${sway} 0 -20)">
+      <path d="M 0 -20 Q -30 -70 -22 -110 M 0 -20 Q 0 -80 6 -120 M 0 -20 Q 26 -70 30 -104" fill="none" stroke="${INK}" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 0 -20 Q -30 -70 -22 -110 M 0 -20 Q 0 -80 6 -120 M 0 -20 Q 26 -70 30 -104" fill="none" stroke="#5f9e3e" stroke-width="14" stroke-linecap="round"/>
+    </g>
+    <path d="M -26 -24 Q 0 -34 26 -24 Q 18 40 2 ${pop > .2 ? 100 : 40} Q -16 40 -26 -24 Z" fill="#f08a3c" ${ink(4.5)}/>
+    <path d="M -14 0 l 10 3 M 8 18 l 8 2" ${ink(3)}/>
+  </g>`;
+}
+function cabbage(x, y, s) {
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <circle r="46" fill="#a6cf7d" ${ink(4.5)}/>
+    <path d="M -44 0 Q -20 -40 0 -46 Q 22 -40 44 0 M -30 10 Q 0 -30 30 10 M -14 18 Q 0 0 14 18" fill="none" stroke="#6d9e4c" stroke-width="4" stroke-linecap="round"/>
+  </g>`;
+}
+function garden(t, popU) {
+  let out = "";
+  // soil beds
+  out += `<path d="M -40 1000 Q 300 940 640 990 Q 400 1060 -40 1080 Z" fill="#8a5a3a" ${ink(4.5)}/>`;
+  out += `<path d="M 460 1050 Q 800 990 1120 1040 L 1120 1160 Q 780 1140 460 1050 Z" fill="#8a5a3a" ${ink(4.5)}/>`;
+  for (let i = 0; i < 6; i++) out += carrot(40 + i * 105, 1030 - i * 6, 0.62, t);
+  for (let i = 0; i < 5; i++) out += cabbage(560 + i * 125, 1080 + (i % 2) * 18, 0.85);
+  // the special carrot that pops at ~5.2s (front bed)
+  out += `<path d="M 380 1640 Q 540 1600 700 1640 Q 540 1690 380 1640 Z" fill="#8a5a3a" ${ink(4.5)}/>`;
+  out += carrot(540, 1650, 1.0, t, popU);
+  return out;
+}
+function sparkles(t, x, y, t0) {
+  const u = (t - t0) / 1.2; if (u < 0 || u > 1) return "";
+  return [...Array(8)].map((_, i) => {
+    const a = i / 8 * TAU, r = 40 + u * 170, s = (1 - u) * 1.2;
+    return `<g transform="translate(${x + Math.cos(a)*r} ${y + Math.sin(a)*r}) scale(${s}) rotate(${u*180})">
+      <path d="M 0 -18 L 5 -5 L 18 0 L 5 5 L 0 18 L -5 5 L -18 0 L -5 -5 Z" fill="#ffd95a" ${ink(3)}/></g>`;
+  }).join("");
+}
+function flower(x, y, s, col, t, ph) {
+  const sw = S(t * 1.8 + ph) * 7, b = blinkAmt(t, ph);
+  const petals = [...Array(8)].map((_, i) => `<ellipse cx="0" cy="-46" rx="24" ry="34" transform="rotate(${i*45})" fill="${col}" ${ink(4)}/>`).join("");
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    ${limb("M 0 0 Q 8 80 0 220", 12, "#6f9e45")}
+    <path d="M 2 120 Q 50 90 70 110 Q 40 140 2 130 Z" fill="#7fb04f" ${ink(3.5)}/>
+    <g transform="rotate(${sw} 0 200)">
+      ${petals}
+      <circle r="40" fill="#f9c74f" ${ink(4)}/>
+      <ellipse cx="-13" cy="-6" rx="5" ry="${Math.max(1,7*b)}" fill="#3b2a20"/><ellipse cx="13" cy="-6" rx="5" ry="${Math.max(1,7*b)}" fill="#3b2a20"/>
+      <path d="M -12 10 Q 0 22 12 10" fill="none" ${ink(3.5)}/>
+      <ellipse cx="-24" cy="8" rx="7" ry="4" fill="${BLUSH}" opacity=".7"/><ellipse cx="24" cy="8" rx="7" ry="4" fill="${BLUSH}" opacity=".7"/>
+    </g>
+  </g>`;
+}
+function daisy(x, y, s, t, ph) {
+  const sw = S(t * 2 + ph) * 8;
+  return `<g transform="translate(${x} ${y}) scale(${s}) rotate(${sw})">
+    ${[...Array(10)].map((_, i) => `<ellipse cx="0" cy="-20" rx="9" ry="17" transform="rotate(${i*36})" fill="#fff" ${ink(3)}/>`).join("")}
+    <circle r="12" fill="#f9c74f" ${ink(3)}/></g>`;
+}
+function butterfly(t, path, col, ph) {
+  const [x, y, ang] = path(t);
+  const f = Math.abs(S(t * 18 + ph));
+  return `<g transform="translate(${x} ${y}) rotate(${ang})">
+    <g transform="scale(${0.25 + f*0.75} 1)">
+      <path d="M 0 0 Q -40 -46 -44 -10 Q -46 14 0 4 Z M 0 0 Q 40 -46 44 -10 Q 46 14 0 4 Z" fill="${col}" ${ink(3.5)}/>
+      <path d="M 0 4 Q -30 34 -14 40 Q 0 36 0 8 Z M 0 4 Q 30 34 14 40 Q 0 36 0 8 Z" fill="${col}" ${ink(3.5)} opacity=".9"/>
+    </g>
+    <path d="M 0 -10 L 0 30" ${ink(6)}/>
+  </g>`;
+}
+
+// ---------------- title ----------------
+function title(t) {
+  const u = ease((t - 7.0) / 0.9); if (u <= 0) return "";
+  const y = 200 - (1 - u) * 60;
+  return `<g opacity="${u}" transform="translate(540 ${y}) rotate(${-2 + (1-u)*4}) scale(${0.85 + u*0.15})">
+    <path d="M -400 -78 L 400 -88 L 386 0 L 404 84 L -396 74 L -382 -4 Z" fill="#fdf3dc" ${ink(6)}/>
+    <text x="0" y="36" text-anchor="middle" font-family="Lalezar" font-size="128" fill="#d9603b" stroke="${INK}" stroke-width="4" paint-order="stroke">عيلة الأرانب</text>
+    <text x="0" y="148" text-anchor="middle" font-family="Lalezar" font-size="54" fill="${INK}">مرسومة بالكود بالكامل</text>
+  </g>`;
+}
+
+// ---------------- scene ----------------
+function scene(t) {
+  // camera: start close on the cottage & sun, ease out to the whole family
+  const c = ease(t / 4.2);
+  const zoom = 1.55 - 0.5 * c + S(t * 0.6) * 0.004;
+  const fx = 700 - 160 * c, fy = 560 + 520 * c;   // focus point
+  const tx = W/2 - fx * zoom, ty = H/2 - fy * zoom;
+  const popU = easeOutBack((t - 5.2) / 0.5) * (t > 5.2 ? 1 : 0);
+
+  const fam = `
+    <g transform="translate(260 1560) scale(0.92)">${dad(t)}</g>
+    <g transform="translate(830 1570) scale(0.9)">${mom(t)}</g>
+    <g transform="translate(440 1640) scale(0.6)">${kid(t, { off: 2.3, girl: true, hops: [3.2, 5.6, 7.9] })}</g>
+    <g transform="translate(645 1650) scale(0.6)">${kid(t, { off: 0.9, girl: false, hops: [3.5, 5.75, 8.2] })}</g>`;
+
+  const bf1 = tt => [540 + S(tt * 0.7) * 380, 1100 + S(tt * 1.3) * 160 - tt * 20, S(tt * 2) * 15];
+  const bf2 = tt => [880 - tt * 60 + S(tt * 1.1) * 60, 900 + S(tt * 1.7) * 90, S(tt * 2.4) * 18];
+  const bf3 = tt => [150 + tt * 55, 1300 + S(tt * 1.5) * 120, S(tt * 1.9) * 20];
+
+  return `
+  <defs>
+    <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7e4a8"/><stop offset=".45" stop-color="#fbf0cf"/><stop offset="1" stop-color="#f6ecc8"/>
+    </linearGradient>
+    <radialGradient id="sunGlow"><stop offset="0" stop-color="#fff7da" stop-opacity=".95"/><stop offset="1" stop-color="#fff2c4" stop-opacity="0"/></radialGradient>
+    <linearGradient id="grassG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a7c867"/><stop offset=".5" stop-color="#93bb57"/><stop offset="1" stop-color="#7aa648"/>
+    </linearGradient>
+    <clipPath id="hillClip"><path d="M 0 640 Q 200 520 420 600 Q 600 520 780 590 Q 940 520 1080 580 L 1080 900 L 0 900 Z"/></clipPath>
+    <radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#3b2414" stop-opacity="0"/><stop offset="1" stop-color="#3b2414" stop-opacity=".35"/></radialGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/>
+      <feColorMatrix values="0 0 0 0 .45  0 0 0 0 .32  0 0 0 0 .2  0 0 0 .55 0"/>
+    </filter>
+  </defs>
+  <g transform="translate(${tx} ${ty}) scale(${zoom})">
+    ${sky(t)}
+    ${hills()}
+    ${cottage(t)}
+    ${ground()}
+    ${appleTree(110, 1000, t, false)}
+    ${appleTree(990, 1010, t, true)}
+    ${garden(t, popU)}
+    ${sparkles(t, 540, 1480, 5.25)}
+    ${fam}
+    ${butterfly(t, bf1, "#f2a65a", 0)}
+    ${butterfly(t, bf2, "#9db8ef", 1.3)}
+    ${butterfly(t, bf3, "#d9a3e6", 2.1)}
+    ${daisy(120, 1720, 1, t, 0)}${daisy(420, 1800, .9, t, 1)}${daisy(700, 1760, 1, t, 2)}${daisy(980, 1700, .9, t, 3)}
+    ${flower(110, 1790, 1.05, "#f08a6a", t, 0.3)}
+    ${flower(340, 1860, 0.9, "#f9c74f", t, 1.1)}
+    ${flower(760, 1870, 0.95, "#b58ad8", t, 2.0)}
+    ${flower(990, 1800, 1.05, "#f08a6a", t, 2.7)}
+  </g>
+  <rect width="${W}" height="${H}" fill="url(#vig)"/>
+  <rect width="${W}" height="${H}" filter="url(#grain)" opacity=".16"/>
+  ${title(t)}
+  <rect width="${W}" height="${H}" fill="#fdf3dc" opacity="${clamp(1 - t / 0.5)}"/>
+  `;
+}
+
+const svg = document.getElementById("stage");
+window.DURATION = DURATION;
+window.setTime = (t) => { svg.innerHTML = scene(t); };
+setTime(Number(new URLSearchParams(location.search).get("t") || 6));
+</script>
+</body>
+</html>
