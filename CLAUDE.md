@@ -22,7 +22,7 @@ are available for timeline/GSAP-based compositions, captions and voiceover.
 - **Pin the HyperFrames CLI** to the version in `package.json` (currently 0.9.91), e.g.
   `node .claude/skills/hyperframes/scripts/plugin-cli.mjs --cli-version 0.9.91 render ...`,
   so renders stay identical across sessions.
-- **Voice:** Kokoro (`hyperframes tts`, or the venv at `/home/user/kokoro-venv`) supports English,
+- **Voice:** Kokoro (`hyperframes tts`, or the venv at `/opt/kokoro-venv`, set `HYPERFRAMES_PYTHON=/opt/kokoro-venv/bin/python`) supports English,
   Spanish, French, Hindi, Italian, Japanese, Portuguese, Chinese — **not Arabic**. Say so before
   promising an Arabic voiceover.
 - On-screen Arabic text uses the Lalezar font in `videos/bunny-family/fonts/`.
