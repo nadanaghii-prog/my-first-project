@@ -1,0 +1,32 @@
+<template>
+  <style>
+    @font-face { font-family: "Lalezar"; src: url("assets/fonts/lalezar-arabic-400-normal.woff2") format("woff2"); }
+    #root { position: absolute; inset: 0; pointer-events: none; }
+    .t-wrap { position: absolute; left: 0; width: 1008px; top: 300px; text-align: center; direction: rtl; overflow: visible; }
+    .t-banner {
+      display: inline-block; background: #fdf3dc; border: 7px solid #6b4a32; border-radius: 28px;
+      padding: 18px 44px 6px; box-shadow: 0 10px 0 rgba(107, 74, 50, .25);
+    }
+    .t-word { display: inline-block; font-family: "Lalezar", sans-serif; font-size: 128px; line-height: 1.1; color: #d9603b; margin: 0 14px; }
+    .t-sub { display: inline-block; margin-top: 26px; font-family: "Lalezar", sans-serif; font-size: 54px; color: #6b4a32;
+      background: #fdf3dc; border: 5px solid #6b4a32; border-radius: 30px; padding: 8px 30px 0; }
+  </style>
+  <div id="root" data-composition-id="title" data-width="1080" data-height="1920">
+    <div id="t-box" class="clip t-wrap" data-start="0" data-duration="3.5">
+      <div id="t-banner" class="t-banner"><span id="t-w1" class="t-word">الجزرة</span><span id="t-w2" class="t-word">العملاقة</span></div>
+      <br><span id="t-sub" class="t-sub">حلقة جديدة من عيلة الأرانب</span>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // banner unrolls with overshoot, words pop one after another (stagger), subtitle settles in
+    tl.fromTo("#t-banner", { scaleX: 0.1, scaleY: 0.6, rotation: -4 }, { scaleX: 1, scaleY: 1, rotation: -2, duration: 0.5, ease: "back.out(2)" }, 0);
+    tl.fromTo("#t-w1", { scale: 0, y: 30 }, { scale: 1, y: 0, duration: 0.42, ease: "back.out(3)" }, 0.18);
+    tl.fromTo("#t-w2", { scale: 0, y: 30 }, { scale: 1, y: 0, duration: 0.42, ease: "back.out(3)" }, 0.32);
+    tl.fromTo("#t-sub", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.75);
+    // moving hold: the banner breathes so the held title never looks frozen
+    tl.to("#t-banner", { rotation: 1, duration: 1.4, ease: "sine.inOut" }, 0.9);
+    tl.to("#t-banner", { rotation: -1, duration: 1.1, ease: "sine.inOut" }, 2.3);
+    window.__timelines["title"] = tl;
+  </script>
+</template>

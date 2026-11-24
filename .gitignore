@@ -1,2 +1,3 @@
 videos/*/music.wav
 node_modules/
+.hyperframes/
