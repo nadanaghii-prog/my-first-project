@@ -158,7 +158,7 @@
 
     t = 3.6;   // intro: paper arrives + title
     TREES.forEach((tr, i) => {
-      const words = ["١. أول شجرة: لوّن بالبرتقالي", "٢. التانية: بالأصفر", "٣. شجرة كبيرة: بالأخضر", "٤. وشجرة بالبمبي"][i];
+      const words = ["1. First tree: color it orange", "2. The second one: yellow", "3. A big tree: green", "4. And a pink tree"][i];
       step(words, () => {
         const pts = scribbleBlob(tr.cx, tr.cy, tr.rx, tr.ry, tr.seed);
         enter(tr.tool, pts[0]);
@@ -166,25 +166,25 @@
         exit();
       });
     });
-    step("٥. الأرض: أصفر… وبعدين برتقالي", () => {
+    step("5. The ground: yellow… then orange", () => {
       const yl = scribbleGround(HORIZON, 1300, 71, 30);
       enter("groundY", yl[0]); addStroke("groundY", yl, "groundY"); exit();
       const or = scribbleGround(1250, 1500, 83, 28);
       enter("groundO", or[0]); addStroke("groundO", or, "groundO"); exit();
     });
-    step("٦. بالقلم الأسود: الجذع والفروع", () => {
+    step("6. Black marker: trunks and branches", () => {
       const all = TREES.map((tr, i) => trunkAndBranches(tr, 100 + i));
       enter("black", all[0][0][0]);
       all.forEach((list, i) => list.forEach(p => addStroke("black", p, "ink")));
       exit();
     });
-    step("٧. عصافير صغيرة في السما", () => {
+    step("7. Little birds in the sky", () => {
       const bs = [[560, 655, 1.45], [710, 615, 1.25], [835, 690, 1.1]].map(([x, y, s]) => bird(x, y, s));
       enter("black", bs[0][0]);
       bs.forEach(b => addStroke("black", b, "ink", { speed: 200, width: 8 }));
       exit();
     });
-    step("٨. ورق شجر بيقع", () => {
+    step("8. Falling leaves", () => {
       const rnd = mulberry32(909);
       const spots = [];
       for (let i = 0; i < 11; i++) {

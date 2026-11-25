@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ar">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Autumn Trees</title>
@@ -142,17 +142,17 @@ function card(text, t, t0, t1, opts = {}) {
   if (t < t0 || t > t1) return "";
   const s = ease.outBack(progress(t, t0, 0.4), 2) * (1 - ease.inCubic(progress(t, t1 - 0.25, 0.25)));
   const fs = opts.size || 50, font = opts.font || "Almarai", wt = opts.weight || 800;
-  const w = Math.min(860, text.length * fs * 0.56 + 90);
+  const w = Math.min(860, text.length * fs * 0.5 + 90);
   return `<g transform="translate(504 ${opts.y || 360}) scale(${s}) rotate(${opts.rot || 0})">
     <rect x="${-w / 2}" y="-58" width="${w}" height="108" rx="40" fill="#fffdf8" ${ink(5)}/>
-    <text x="0" y="${fs * 0.33}" text-anchor="middle" direction="rtl" font-family="${font}" font-weight="${wt}" font-size="${fs}" fill="${opts.color || INK}">${text}</text></g>`;
+    <text x="0" y="${fs * 0.33}" text-anchor="middle" font-family="${font}" font-weight="${wt}" font-size="${fs}" fill="${opts.color || INK}">${text}</text></g>`;
 }
 function title(t) {
   if (t > 3.5) return "";
   const out = 1 - ease.inCubic(progress(t, 3.15, 0.35));
   const a = ease.outBack(progress(t, 0.5, 0.5), 2.4) * out, b = ease.outBack(progress(t, 0.75, 0.5), 2.4) * out;
-  return `<g transform="translate(504 330) scale(${a})"><text text-anchor="middle" direction="rtl" font-family="Marhey" font-weight="700" font-size="112" fill="#f07a2a" stroke="#fffdf8" stroke-width="14" paint-order="stroke">ارسم معايا</text></g>
-    <g transform="translate(504 470) scale(${b})"><text text-anchor="middle" direction="rtl" font-family="Marhey" font-weight="700" font-size="96" fill="${INK}" stroke="#fffdf8" stroke-width="12" paint-order="stroke">أشجار الخريف</text></g>`;
+  return `<g transform="translate(504 330) scale(${a})"><text text-anchor="middle" font-family="Marhey" font-weight="700" font-size="116" fill="#f07a2a" stroke="#fffdf8" stroke-width="14" paint-order="stroke">Draw with me</text></g>
+    <g transform="translate(504 470) scale(${b})"><text text-anchor="middle" font-family="Marhey" font-weight="700" font-size="100" fill="${INK}" stroke="#fffdf8" stroke-width="12" paint-order="stroke">Autumn Trees</text></g>`;
 }
 function ending(t) {
   const t0 = D.drawEnd + 0.4;
@@ -161,15 +161,15 @@ function ending(t) {
   const star = (x, y, d) => { const u = ease.outBack(progress(t, t0 + d, 0.4), 3); const tw = 1 + 0.12 * Math.sin((t - t0) * 4 + x);
     return `<g transform="translate(${x} ${y}) scale(${u * tw}) rotate(${(t - t0) * 20})"><path d="M 0 -26 L 7 -7 L 26 0 L 7 7 L 0 26 L -7 7 L -26 0 L -7 -7 Z" fill="#ffd34d" ${ink(3.5)}/></g>`; };
   return `${star(120, 640, 0.2)}${star(960, 700, 0.35)}${star(130, 1420, 0.5)}${star(950, 1450, 0.65)}
-    <g transform="translate(504 330) scale(${a}) rotate(-2)"><text text-anchor="middle" direction="rtl" font-family="Marhey" font-weight="700" font-size="108" fill="#f07a2a" stroke="#fffdf8" stroke-width="14" paint-order="stroke">خلصت الرسمة!</text></g>
-    <g opacity="${b}" transform="translate(0 ${(1 - b) * 20})">${card("جرّبوها وورّونا رسمتكم", t, t0 + 0.6, 1e9, { y: 470, size: 46 })}</g>`;
+    <g transform="translate(504 330) scale(${a}) rotate(-2)"><text text-anchor="middle" font-family="Marhey" font-weight="700" font-size="116" fill="#f07a2a" stroke="#fffdf8" stroke-width="14" paint-order="stroke">All done!</text></g>
+    <g opacity="${b}" transform="translate(0 ${(1 - b) * 20})">${card("Try it and show us your drawing!", t, t0 + 0.6, 1e9, { y: 470, size: 44 })}</g>`;
 }
 
 function scene(t) {
   const pp = paper(t);
   const stepCards = D.steps.map((s, i) => {
     const next = D.steps[i + 1];
-    return card(s.text, t, s.t0, next ? next.t0 - 0.05 : s.t1 + 0.4, { size: s.text.length > 26 ? 44 : 50 });
+    return card(s.text, t, s.t0, next ? next.t0 - 0.05 : s.t1 + 0.4, { size: s.text.length > 30 ? 44 : 50 });
   }).join("");
   const settle = 1 + 0.012 * ease.inOutSine(progress(t, D.drawEnd + 0.4, 2.5));   // finished: gentle push-in
   return `<defs>
